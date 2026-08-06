@@ -1,0 +1,120 @@
+text_encoder:
+  name: bert
+  pretrained_model: microsoft/BiomedVLP-CXR-BERT-specialized
+  do_lower_case: true
+  gradient_checkpointing: false
+  tokenizer_init_kwargs: {}
+  use_random_window: True # If True, it will randomly pick a token window of max_length
+  end_bias: 0.7 # value 0.0~1.0. Higher value will push token window towards the end of the text.
+  tokenizer_encode_kwargs:
+    padding: "max_length"
+    truncation: true
+    max_length: 512
+    return_tensors: "pt"
+  model_kwargs: {}  
+
+image_encoder:
+  name: ctvit
+  dim: 512 
+  codebook_size: 8192
+  image_size: 256 # if resizing using dataloader.resize_shape, then use height or width of resized shape, otherwise, take from original resolution.
+  patch_size: 16 
+  temporal_patch_size: 16 # along z-axis
+  spatial_depth: 6 
+  temporal_depth: 4
+  dim_head: 64 
+  heads: 8
+  classifier_out_chs: null # [256, 128, 64] # only required for linear probing in classification head
+  classifier_dropout: 0.3 # only required for linear probing in classification head
+  classifier_freeze_latents: True # only required for linear probing
+
+vlm:
+  image_feat_dim: 512 
+  text_feat_dim: 768
+  shared_latent_dim: 512
+  
+others:
+  token_refiner_dict: 
+    embed_size: 512
+    num_heads: 8 
+    num_layers: 4
+    top_k: 128
+    use_multi_scale: True
+    attn_type: rma
+    enable_diffts: True # Differentiable token selection
+    enable_dmtp: True # Dynamic multi-scale token pooling
+    scales: [1,2,4]
+    tau: 0.1
+    context_bias: True 
+    return_div_loss: False
+    div_weight: 0.1
+    spatial_max_seq_len: 512 # >= No. of spatial patches -> inplane_size/spatial_patch_size
+    temporal_max_seq_len: 16 # >= No. of temporal patches -> depth_size/depth_patch_size
+  
+dataloader:
+  resample: [3, 1.0, 1.0] #DHW
+  n_zSlices: null 
+  zSlices_pad_value: 0 
+  intensity_clip: null # [0, 1000]
+  clip_percentile: [0.5, 99] # if both intensity clip and percentile are provided, then intensity clip dominates
+  normalize: True
+  resize_shape: [128, 256, 256] # DHW
+  transform: null
+  verbose: False
+
+train:
+  batch_size: 16 
+  n_train_steps: 100002 # used in contrastive learning
+  save_results_every: 1000 # iteration
+  save_model_every: 1000 # iteration, even though finetuning uses epochs, it saves model based on iteration
+  lr: 0.00001 
+  weight_decay: 0.01
+  max_grad_norm: 0.5
+  n_workers: 4 
+  save_ckpts: /path/to/save/checkpoint/directory/ # e.g., /my_exp/checkpoints/contrastive/
+  resume_from: null # full checkpoint path (including .pt) to restore contrastive training
+  save_results: /path/to/save/result/directory/ # e.g., /my_exp/results/contrastive/train/ # liprobing does not calculate metrics, can be implemented in future
+  load_contrastive_ckpt: /path/to/checkpoint/directory/ # e.g., /my_exp/checkpoints/contrastive/Clip.100000.pt # use for finetuning (linear probing/vocab)
+  load_lipro_ckpt: null # full checkpoint path (including .pt) to restore linear probing training
+  load_lipro_optim_ckpt: null # full optimizer path (including .pt) to restore linear probing training
+  resume_epoch: null # if provided, it will start training from resume_epoch. Works only when load_lipro_ckpt is not null.
+  finetune_epochs: 75 # no. of epochs used in finetuning
+  warmup_length: 5000 # used in finetuning
+  print_every: 1000 # used in finetuning
+  chunk_size: 5 # needed for vocabFine. It creates small chunks of data
+    
+inference:
+  load_ckpt: /path/to/checkpoint/ # e.g., for linear probing: /my_exp/checkpoints/linear_probing/epoch_54.pt
+  save_results: /path/to/save/results/directory/ # /research/m324371/Project/Digital_Twin/CT-CLIP/my_exp/exp_MR_11/results/liprobing/test/
+  batch_size: 1 
+  n_workers: 1 
+
+pathologies:
+  labels: ['PKD Indication', 'PLD Indication', 'Hemorrhagic proteinaceous cysts in the kidney', 'Kidney stones calculi', 
+          'Nephrectomy', 'Kidney transplant', 'Kidney cysts', 'Liver cysts', 'Colonic diverticula diverticulosis', 
+          'Cysts in the spleen', 'Cysts in the pancreas', 'Abdominal Aortic Aneurysm', 'Artery aneurysm', 
+          'Diverticular disease', 'Hydronephrosis']
+  text_column: "Refined Report"
+
+directories:
+  reports_train: /path/to/Excel/directory/ # /Dataframes/Dataset_MR_train.xlsx
+  labels_train: /path/to/Excel/directory/ # /Dataframes/Dataset_MR_train.xlsx # the same path can be used if both reports and labels are present in the same file 
+  images_train: /path/to/training/images/directory/ # e.g., /Dataset/MR/ # Note: we have all our train, val, and test data in the same directory
+  reports_val: /path/to/Excel/directory/ # /Dataframes/Dataset_MR_val.xlsx
+  labels_val: /path/to/Excel/directory/ # /Dataframes/Dataset_MR_val.xlsx
+  images_val: /path/to/training/images/directory/ # e.g., /Dataset/MR/ 
+  reports_test: /path/to/Excel/directory/ # /Dataframes/Dataset_MR_test.xlsx
+  labels_test: /path/to/Excel/directory/ # /Dataframes/Dataset_MR_test.xlsx
+  images_test: /path/to/training/images/directory/ # e.g., /Dataset/MR/ 
+
+loss:
+  weights: [0.7998, 1.5525, 1.62, 50.0, 11.7252, 12.5209, 0.2312, 0.6371, 14.9993, 44.7612, 25.8723, 50.0, 50.0, 50.0, 50.0] # formula-2
+  
+  # FILIP parameters
+  contrastive_loss_temperature: 0.07
+  filip_pool: logsumexp
+  filip_lse_alpha: 10.0
+  filip_decoupled: False
+  filip_max_logit_scale: 100.0
+  
+  

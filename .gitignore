@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Deep learning checkpoints
+*.pt
+*.pth
+
+# Medical imaging data (ignore if datasets are large)
+*.nii.gz
+
+# Project-specific data & outputs
+MR-ALL/
+Dataframes/
+Dataset/
+Dataset_791/
+results/
+Figures/
+TKLV_CorT2_mini/
+Radiology_reports/
