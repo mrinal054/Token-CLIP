@@ -8,14 +8,14 @@ Token-CLIP is a token-based contrastive learning framework for training and eval
 
 Create and activate a Python virtual environment before installing the required packages.
 
-For instructions, see the [Python virtual environment setup guide](<virtual-environment-guide-link>).
+For instructions, see the [Python virtual environment setup guide](<https://github.com/mrinal054/Token-CLIP/blob/main/resources/PYTHON_ENVIRONMENT_SETUP.md>).
 
 ### 2. Clone the Repository
 
 Clone this repository to your desired directory:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/mrinal054/Token-CLIP.git
 ```
 
 Navigate to the project root directory:
@@ -56,13 +56,13 @@ cd ../scripts
 
 ### Spreadsheet
 
-Prepare the input spreadsheet by following the format provided in the [demo spreadsheet](<demo-spreadsheet-link>).
+Prepare the input spreadsheet by following the format provided in the [demo spreadsheet](<https://github.com/mrinal054/Token-CLIP/blob/main/spreadsheets/demo_spreadsheet.xlsx>).
 
 > **Note:** The current implementation expects all input images to be stored in the same directory.
 
 ### Configuration File
 
-Create a configuration file based on the provided [sample configuration file](<sample-config-link>).
+Create a configuration file based on the provided [sample configuration file](<https://github.com/mrinal054/Token-CLIP/blob/main/scripts/config/template.yaml>).
 
 For example:
 
